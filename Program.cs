@@ -4,7 +4,7 @@ namespace Lox
 {
     internal class Program
     {
-        private static readonly Interpreter interpreter = new Interpreter();
+        private static readonly Interpreter _interpreter = new Interpreter();
         static bool hadError = false;
         static bool hadRuntimeError = false;
         static void Main(string[] args)
@@ -81,7 +81,7 @@ namespace Lox
                 return;
             }
 
-            Resolver resolver = new Resolver(interpreter);
+            Resolver resolver = new Resolver(_interpreter);
             resolver.resolve(statements);
 
             if (hadError)
@@ -89,7 +89,7 @@ namespace Lox
                 return;
             }
 
-            interpreter.interpret(statements);
+            _interpreter.interpret(statements);
 
             //Console.WriteLine(new AstPrinter().print(expression));
         }
