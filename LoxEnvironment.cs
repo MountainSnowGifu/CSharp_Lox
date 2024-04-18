@@ -47,9 +47,10 @@ namespace Lox
         }
 
         //固定数の環境を辿り、そのマップに新しい値を記入します。
-        internal void AssignAt(int distance,Token name, object value)
+        internal void AssignAt(int distance, Token name, object value)
         {
-            ancestor(distance)._values.Add(name.lexeme, value);
+            //ancestor(distance)._values.Add(name.lexeme, value);
+            ancestor(distance)._values[name.lexeme]=value;
         }
 
         internal object get(Token name)

@@ -1,0 +1,72 @@
+﻿class ArrayString{
+
+	init(init_string){
+	this.turnMaru = true;
+	this.x0y0 = init_string;
+	this.x1y0 = init_string;
+	this.x2y0 = init_string;
+	this.x0y1 = init_string;
+	this.x1y1 = init_string;
+	this.x2y1 = init_string;
+	this.x0y2 = init_string;
+	this.x1y2 = init_string;
+	this.x2y2 = init_string;
+	}
+
+	print_field(){
+		print this.x0y0 + " " + this.x1y0 + " " + this.x2y0 ;
+		print this.x0y1 + " " + this.x1y1 + " " + this.x2y1 ;
+		print this.x0y2 + " " + this.x1y2 + " " + this.x2y2 ;
+	}
+
+	update_feiled(x){
+		if (x == "1"){
+			this.x0y0 = this.display();
+		}
+		if (x == "2"){
+			this.x1y0 = this.display();
+		}
+		if (x == "3"){
+			this.x2y0 = this.display();
+		}
+		if (x == "4"){
+			this.x0y1 = this.display();
+		}
+		if (x == "5"){
+			this.x1y1 = this.display();
+		}
+		if (x == "6"){
+			this.x2y1 = this.display();
+		}
+		if (x == "7"){
+			this.x0y2 = this.display();
+		}
+		if (x == "8"){
+			this.x1y2 = this.display();
+		}
+		if (x == "9"){
+			this.x2y2 = this.display();
+		}
+	}
+
+	display(){
+		if (this.turnMaru){
+			return "○";
+		}
+		if (!this.turnMaru){
+			return "×";
+		}
+	}
+}
+
+
+var input = "0";
+var field = ArrayString("・");
+
+while(true){
+	field.print_field();
+	print "1-9の数字を入力してください";
+	input = readLine();
+	field.update_feiled(input);
+	field.turnMaru=!field.turnMaru;
+}
