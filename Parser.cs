@@ -74,6 +74,17 @@ namespace Lox
         private Stmt classDeclaration()
         {
             Token name = consume(TokenType.IDENTIFIER, "Expect class name.");
+
+
+            //スーパークラス名をトークンではなくExpr.Variableノードにラップして保存する
+            //名前をExpr.Variableでラップしておけば、そのオブジェクトにリゾルバが解決に必要な情報を付加できる。
+            Expr.Variable superclass = null;
+            if (match(TokenType.LESS))
+            {
+                consume(TokenType.IDENTIFIER, "Expect superclass name.");
+                superclass = new Expr.Variable(previous());
+            }
+
             consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
 
             List<Stmt.Function> methods = new List<Stmt.Function>();
@@ -84,7 +95,7 @@ namespace Lox
 
             consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
 
-            return new Stmt.Class(name, methods);
+            return new Stmt.Class(name, superclass, methods);
         }
 
         private Stmt.Function function(string kind)
@@ -328,7 +339,8 @@ namespace Lox
                 {
                     Token name = ((Expr.Variable)expr).name;
                     return new Expr.Assign(name, value);
-                }else if (expr is Expr.Get)
+                }
+                else if (expr is Expr.Get)
                 {
                     //左辺のExpr.Get式をExpr.Setに変換　これでSetによる代入が解析される
                     Expr.Get get = (Expr.Get)expr;
@@ -454,7 +466,7 @@ namespace Lox
                 else if (match(TokenType.DOT))
                 {
                     Token name = consume(TokenType.IDENTIFIER, "Expect property name after '.' .");
-                    expr = new Expr.Get(expr,name);
+                    expr = new Expr.Get(expr, name);
                 }
                 else
                 {
@@ -511,6 +523,15 @@ namespace Lox
             if (match(TokenType.NUMBER, TokenType.STRING))
             {
                 return new Expr.Literal(previous().literal);
+            }
+
+            if (match(TokenType.SUPER))
+            {
+                Token keyword = previous();
+                consume(TokenType.DOT, "Expect '.' after 'super'.");
+                Token method = consume(TokenType.IDENTIFIER, "Expect superclass method name.");
+                return new Expr.Super(keyword, method);
+
             }
 
             if (match(TokenType.THIS))

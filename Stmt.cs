@@ -32,11 +32,13 @@ namespace Lox
         internal class Class : Stmt
         {
             internal Token name { get; }
+            internal Expr.Variable superclass { get; }
             internal List<Stmt.Function> methods { get; }
 
-            internal Class(Token name, List<Stmt.Function> methods)
+            internal Class(Token name, Expr.Variable superclass, List<Stmt.Function> methods)
             {
                 this.name = name;
+                this.superclass = superclass;
                 this.methods = methods;
             }
 

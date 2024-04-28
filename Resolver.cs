@@ -45,6 +45,7 @@ namespace Lox
         {
             NONE,
             CLASS,
+            SUBCLASS,
         }
 
         //構文木を辿っているときにいまクラス宣言の中なのかを教えてくれる
@@ -81,6 +82,31 @@ namespace Lox
 
             declare(stmt.name);
             define(stmt.name);
+
+
+            //自分自身を継承しようとするケースを静的に検出してエラーとして報告します。
+            if (stmt.superclass != null && stmt.name.lexeme == stmt.superclass.name.lexeme)
+            {
+                Lox.Program.error(stmt.superclass.name, "A class can't inherit from itself.");
+            }
+
+            //スーパークラスがある場合は、それを解決します。
+            //Loxではクラス宣言をブロックの中でさえも許しています。だからスーパークラス名がローカル変数を参照する場合もあり得るのです。
+            //その場合も、必ず解決されるようにしておく必要があります。
+            if (stmt.superclass != null)
+            {
+                _currentClass = ClassType.SUBCLASS;
+                resolve(stmt.superclass);
+            }
+
+            //もしクラス宣言にスーパークラスがあれば、すべてのメソッドを囲む新しいスコープを作り、そのスコープにsuperという名前を束縛します。
+            //そのクラスのメソッド群を解決し終わったら、そのスコープは破棄します。
+            if (stmt.superclass != null)
+            {
+                beginScope();
+                _scopes.Peek().Add("super", true);
+            }
+
 
             //thisという名前を使うローカル変数とまったく同じように解決される。
             //メソッド本文に踏み込んで解決するまえに、それを囲むスコープを設定し、その中にthisを変数のように定義しておく
@@ -285,6 +311,23 @@ namespace Lox
         {
             resolve(expr.value);
             resolve(expr._object);
+            return null;
+        }
+
+        //superトークンを変数と同様に解決します、環境チェーンでインタプリタが辿るべきホップ数がここではスーパークラスを格納した環境までの距離となります。
+        public object VisitSuperExpr(Expr.Super expr)
+        {
+            if (_currentClass == ClassType.NONE)
+            {
+                Lox.Program.error(expr.keyword, "Can't use 'super' outside of a class.");
+            }
+            else if (_currentClass != ClassType.SUBCLASS)
+            {
+                Lox.Program.error(expr.keyword, "Can't use 'super' in a class with no superclass");
+            }
+
+
+            resolveLocal(expr, expr.keyword);
             return null;
         }
 

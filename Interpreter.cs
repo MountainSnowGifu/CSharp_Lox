@@ -156,9 +156,9 @@ namespace Lox
             stmt.Accept(this);
         }
 
-        public void resolve(Expr expr,int depth)
+        public void resolve(Expr expr, int depth)
         {
-            _locals.Add(expr,depth);
+            _locals.Add(expr, depth);
         }
 
         public void executeBlock(List<Stmt> statements, LoxEnvironment environment)
@@ -259,13 +259,13 @@ namespace Lox
 
         public object VisitVariableExpr(Expr.Variable expr)
         {
-            return lookUpVariable(expr.name,expr);
+            return lookUpVariable(expr.name, expr);
         }
 
         //まず解決への距離をマップで探索します。ローカル変数だけを解決したことを思い出します。
         //グローバルは特別あつかいでこのマップには入りません。もし距離がマップになければグローバルに違いないのです。
         //その場合は動的な参照をグローバル環境で直接行い、もし未定義の変数ならランタイムエラーを送出します。
-        private object lookUpVariable(Token name,Expr expr)
+        private object lookUpVariable(Token name, Expr expr)
         {
             if (_locals.ContainsKey(expr))
             {
@@ -296,7 +296,7 @@ namespace Lox
         }
         public object VisitBlockStmt(Stmt.Block stmt)
         {
-            executeBlock(stmt.statements,new LoxEnvironment(_loxEnvironment));
+            executeBlock(stmt.statements, new LoxEnvironment(_loxEnvironment));
             return null;
         }
 
@@ -305,19 +305,47 @@ namespace Lox
         //このように変数束縛のプロセスを二段階で行うことによって、クラスメソッドの内部からクラス自身を参照できるようにしています。
         public object VisitClassStmt(Stmt.Class stmt)
         {
+
+            //このクラスにスーパークラスの式があれば、それを評価して、それがクラスであることを確認します。
+            object superclass = null;
+            if (stmt.superclass != null)
+            {
+                superclass = evaluate(stmt.superclass);
+                if (!(superclass is LoxClass))
+                {
+                    throw new RuntimeError(stmt.superclass.name, "Superclass must be a class.");
+                }
+            }
+
+
             _loxEnvironment.define(stmt.name.lexeme, null);
 
-            Dictionary<string,LoxFunction> methods = new Dictionary<string,LoxFunction>();
+            //サブクラスび定義を評価するときに新しい環境を作ります。
+            if (stmt.superclass != null)
+            {
+                _loxEnvironment = new LoxEnvironment(_loxEnvironment);
+                _loxEnvironment.define("super", superclass);
+            }
+
+            Dictionary<string, LoxFunction> methods = new Dictionary<string, LoxFunction>();
 
             //個々のmethod宣言をLoxFunctuionオブジェクトに展開する
             foreach (var method in stmt.methods)
             {
-                LoxFunction function = new LoxFunction(method, _loxEnvironment,method.name.lexeme.Equals("init"));
+                LoxFunction function = new LoxFunction(method, _loxEnvironment, method.name.lexeme.Equals("init"));
                 methods.Add(method.name.lexeme, function);
             }
 
             //これらすべてをメソッド名をキーとするMAPでつつみLOXCLASSに格納する
-            LoxClass klass = new LoxClass(stmt.name.lexeme, methods);
+            LoxClass klass = new LoxClass(stmt.name.lexeme, (LoxClass)superclass, methods);
+
+
+            //スーパークラスがあれば、それを環境から取り除きます。環境をホップする
+            if (superclass != null)
+            {
+                _loxEnvironment = _loxEnvironment._enclosing;
+            }
+
             _loxEnvironment.assign(stmt.name, klass);
             return null;
         }
@@ -375,6 +403,30 @@ namespace Lox
             return value;
         }
 
+        public object VisitSuperExpr(Expr.Super expr)
+        {
+            //super式を囲むクラスのスーパークラスを適切な距離にある環境でsuperを探索することによって探し出します。
+            int distance = _locals.GetValueOrDefault(expr);
+            LoxClass superclass = (LoxClass)_loxEnvironment.getAt(distance, "super");
+
+            //super式における現在のオブジェクトは暗黙のうちに、いま実際使っている現在のオブジェクト　すなわちTHISと同じものになります。
+            //例えばスーパークラスのメソッドを探索していても、そのインスタンスは歴然としてTHISなのです。
+            //this が束縛される環境は常に我々がSUPERを格納する環境のすぐ内側にあります。
+            //距離から１を引けば、その内側の環境でTHISを探索できます。
+            LoxInstance loxInstance_object = (LoxInstance)_loxEnvironment.getAt(distance - 1, "this");
+
+            //これでもうスーパークラスを始点としてメソッドを探索し、束縛できるようになります。
+            //これはGET式のメソッドを探索するコードとほとんど同じです。ただし現在のオブジェクトのクラスではなくスーパークラスのFINDMETHODを呼び出すことだけが違います。
+            LoxFunction method = superclass.findMethod(expr.method.lexeme);
+
+            if (method == null)
+            {
+                throw new RuntimeError(expr.method, "Undefined proterty '" + expr.method.lexeme + "'.");
+            }
+
+            return method.bind(loxInstance_object);
+        }
+        
         public object VisitThisExpr(Expr.This expr)
         {
             return lookUpVariable(expr.keyword, expr);
@@ -414,10 +466,10 @@ namespace Lox
 
             if (arguments.Count() != function.arity())
             {
-                throw new RuntimeError(expr.paren,"Expected " + function.arity() + " arguments but got " + arguments.Count() + ".");
+                throw new RuntimeError(expr.paren, "Expected " + function.arity() + " arguments but got " + arguments.Count() + ".");
             }
 
-            return function.call(this,arguments);
+            return function.call(this, arguments);
         }
 
         //まずプロパティアクセスの対象となる式を評価する。LOXでプロパティを持つのは、クラスのインスタンスだけ。
@@ -437,7 +489,7 @@ namespace Lox
 
         public object VisitFunctionStmt(Stmt.Function stmt)
         {
-            LoxFunction function = new LoxFunction(stmt, _loxEnvironment,false);//普通の関数宣言ならinitialierは常にfalse
+            LoxFunction function = new LoxFunction(stmt, _loxEnvironment, false);//普通の関数宣言ならinitialierは常にfalse
             _loxEnvironment.define(stmt.name.lexeme, function);
             return null;
         }
@@ -456,5 +508,6 @@ namespace Lox
 
             throw new Return(value);
         }
+
     }
 }

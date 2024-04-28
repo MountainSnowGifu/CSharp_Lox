@@ -13,6 +13,7 @@ namespace Lox
             T VisitLiteralExpr(Literal expr);
             T VisitLogicalExpr(Logical expr);
             T VisitSetExpr(Set expr);
+            T VisitSuperExpr(Super expr);
             T VisitThisExpr(This expr);
             T VisitUnaryExpr(Unary expr);
             T VisitVariableExpr(Variable expr);
@@ -147,6 +148,22 @@ namespace Lox
             internal override T Accept<T>(IVisitor<T> visitor)
             {
                 return visitor.VisitSetExpr(this);
+            }
+}
+        internal class Super : Expr
+        {
+            internal Token keyword { get; }
+            internal Token method { get; }
+
+            internal Super(Token keyword, Token method)
+            {
+                this.keyword = keyword;
+                this.method = method;
+            }
+
+            internal override T Accept<T>(IVisitor<T> visitor)
+            {
+                return visitor.VisitSuperExpr(this);
             }
 }
         internal class This : Expr

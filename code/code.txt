@@ -1,31 +1,8 @@
-﻿
-fun CustomAbs(number){
-    if (number < 0) {
-        return -number;
-    }
-    else
-    {
-        return number;
-    }
+﻿class Eclair {
+  cook() {
+    super.cook();
+    print "Pipe full of crème pâtissière.";
+  }
 }
 
-fun CustomSqrt(x){
-    if (x < 0) {
-        return "error";
-    }else if(x == 0) {
-        return 0;
-    }
-
-    var guess = x / 2.0;
-    var epsilon = 0.0000001;
-    var err = CustomAbs(guess * guess - x);
-
-    while (err > epsilon) {
-		guess = (guess + x / guess) / 2;
-        err = CustomAbs(guess * guess - x);
-	}
-
-    return guess;
-}
-
-print CustomSqrt(81)*CustomSqrt(81);
+super.notEvenInAClass();

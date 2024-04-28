@@ -10,11 +10,13 @@ namespace Lox
     internal class LoxClass : ILoxCallable
     {
         public readonly string _name;
+        public readonly LoxClass _superclass;
         private readonly Dictionary<string, LoxFunction> _methods;
 
-        public LoxClass(string name, Dictionary<string, LoxFunction> methods)
+        public LoxClass(string name, LoxClass _superclass, Dictionary<string, LoxFunction> methods)
         {
             this._name = name;
+            this._superclass = _superclass;
             this._methods = methods;
         }
 
@@ -23,6 +25,12 @@ namespace Lox
             if (this._methods.ContainsKey(name))
             {
                 return this._methods[name];
+            }
+
+
+            if (_superclass != null)
+            {
+                return _superclass.findMethod(name);
             }
 
             return null;
